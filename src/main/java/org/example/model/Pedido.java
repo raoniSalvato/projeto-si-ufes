@@ -10,27 +10,44 @@ public class Pedido {
     private Cliente cliente;
     private LocalDateTime data;
     private List<Item> itens;
-    private List<CupomDescontoEntrega> cuponsDeDescontoEntrega;
+    private String codigoCupomDesconto;
+    private double percentualCupomDeDesconto;
     private double taxaEntrega;
 
     public Pedido(LocalDateTime data, Cliente cliente){
         itens = new ArrayList<>();
-        cuponsDeDescontoEntrega = new ArrayList<>();
         this.data = data;
         this.cliente = cliente;
         this.taxaEntrega = APITaxaEntregaMoc.getTaxaEntrega();
+
+        this.codigoCupomDesconto = null;
+        this.percentualCupomDeDesconto = 0.0;
     }
 
     public void adicionarItem(Item item){
         itens.add(item);
     }
 
+    public String getCodigo(){
+        return codigoCupomDesconto;
+    }
+
+    public double getPercentualDeDesconto(){
+        return percentualCupomDeDesconto;
+    }
+
+    public void aplicarCupom(String codigo, double percentualDeDesconto){
+        this.codigoCupomDesconto = codigo;
+        this.percentualCupomDeDesconto = percentualDeDesconto;
+    }
+
     public double getValorPedido(){
-        double valorPedido = 0;
+        double valorBruto = 0;
         for(Item i: itens){
-            valorPedido += i.getValorTotal();
+            valorBruto += i.getValorTotal();
         }
-        return (valorPedido) - (getValorTotalDescontoTaxaDeEntrega() + (APITaxaEntregaMoc.getTaxaEntrega()));
+        valorBruto += this.taxaEntrega;
+        return valorBruto * (1-(percentualCupomDeDesconto/100));
     }
 
     public Cliente getCliente(){
@@ -41,41 +58,12 @@ public class Pedido {
         return itens;
     }
 
-    public void aplicarDesconto(CupomDescontoEntrega cupom){
-        double limiteDescontoNaTaxaDeEntrega = 10.0;
-        double descontoConcedidoNaTaxaDeEntrega = getValorTotalDescontoTaxaDeEntrega();
-        double restanteDescontoNaTaxaDeEntrega = limiteDescontoNaTaxaDeEntrega - descontoConcedidoNaTaxaDeEntrega;
-        if(restanteDescontoNaTaxaDeEntrega <= 0){
-            return;
-        }
-        double desconto = cupom.getValorDescontoCupom();
-        if(desconto <= restanteDescontoNaTaxaDeEntrega){
-            cuponsDeDescontoEntrega.add(cupom);
-        }else{
-            CupomDescontoEntrega cupomParcial = new CupomDescontoEntrega(cupom.getNomeMetodo() + " (parcial)", restanteDescontoNaTaxaDeEntrega);
-            cuponsDeDescontoEntrega.add(cupomParcial);
-        }
-    }
-
-    public double getValorTotalDescontoTaxaDeEntrega(){
-        double valorTotalDescontoTaxaDeEntrega = 0;
-        for(CupomDescontoEntrega c : cuponsDeDescontoEntrega){
-            valorTotalDescontoTaxaDeEntrega += c.getValorDescontoCupom();
-        }
-        return valorTotalDescontoTaxaDeEntrega;
-    }
-
-    public List<CupomDescontoEntrega> getCuponsDescontoEntrega(){
-        return cuponsDeDescontoEntrega;
-    }
-
     @Override
     public String toString(){
         return "\nPedido" +
                 "\nData: " + this.data +
                 "\nCliente: " + this.cliente +
                 "\nItens: " + this.itens +
-                "\nTaxa de Entrega: " + this.taxaEntrega +
-                "\nCupons de Desconto: " + this.cuponsDeDescontoEntrega;
+                "\nTaxa de Entrega: " + this.taxaEntrega;
     }
 }
